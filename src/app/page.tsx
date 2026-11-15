@@ -19,12 +19,15 @@ export default function HomePage() {
             Book seats for concerts, shows and events.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-3">
-          <Button render={<Link href="/login" />} nativeButton={false}>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button render={<Link href="/events" />} nativeButton={false}>
+            Browse events
+          </Button>
+          <Button variant="outline" render={<Link href="/login" />} nativeButton={false}>
             Log in
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             render={<Link href="/register" />}
             nativeButton={false}
           >

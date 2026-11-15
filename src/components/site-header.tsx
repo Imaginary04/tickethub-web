@@ -21,9 +21,14 @@ export function SiteHeader() {
   return (
     <header className="border-b">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="font-semibold">
-          TicketHub
-        </Link>
+          <div className="flex items-center gap-6">
+          <Link href="/" className="font-semibold">
+            TicketHub
+          </Link>
+          <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground">
+            Events
+          </Link>
+        </div>
 
         {/* Render nothing while we don't know yet, so the buttons don't flicker */}
         {status === "authenticated" && user && (
