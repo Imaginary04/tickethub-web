@@ -21,19 +21,25 @@ export function SiteHeader() {
   return (
     <header className="border-b">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4 sm:gap-6">
           <Link href="/" className="font-semibold">
             TicketHub
           </Link>
           <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground">
             Events
           </Link>
+          {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
+            <Link href="/organizer" className="text-sm text-muted-foreground hover:text-foreground">
+              Dashboard
+            </Link>
+          )}
         </div>
 
         {/* Render nothing while we don't know yet, so the buttons don't flicker */}
         {status === "authenticated" && user && (
           <nav className="flex items-center gap-3">
-            <Link href="/account" className="text-sm text-muted-foreground hover:text-foreground">
+            {/* The name is hidden on phones to keep the header on one line */}
+            <Link href="/account" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
               {user.name}
             </Link>
             <Button variant="outline" size="sm" onClick={handleLogout}>
