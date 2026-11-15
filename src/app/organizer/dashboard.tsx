@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatCategory } from "@/lib/format";
 import { listMyEvents, listMyVenues, type OrganizerEvent, type VenueSummary } from "@/lib/organizer";
 
-const STATUS_STYLES: Record<OrganizerEvent["status"], string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  PUBLISHED: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-};
+import { StatusBadge } from "./status-badge";
 
 export function Dashboard() {
   const [events, setEvents] = useState<OrganizerEvent[] | null>(null);
@@ -58,14 +54,17 @@ export function Dashboard() {
         ) : (
           <ul className="divide-y rounded-xl border">
             {events.map((event) => (
-              <li key={event.id} className="flex items-center justify-between gap-3 p-4">
-                <div className="grid gap-0.5">
-                  <span className="font-medium">{event.title}</span>
-                  <span className="text-sm text-muted-foreground">{formatCategory(event.category)}</span>
-                </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[event.status]}`}>
-                  {formatCategory(event.status)}
-                </span>
+              <li key={event.id}>
+                <Link
+                  href={`/organizer/events/${event.id}`}
+                  className="flex items-center justify-between gap-3 p-4 hover:bg-muted/50"
+                >
+                  <div className="grid gap-0.5">
+                    <span className="font-medium">{event.title}</span>
+                    <span className="text-sm text-muted-foreground">{formatCategory(event.category)}</span>
+                  </div>
+                  <StatusBadge status={event.status} />
+                </Link>
               </li>
             ))}
           </ul>

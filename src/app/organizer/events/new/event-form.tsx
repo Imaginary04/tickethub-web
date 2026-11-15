@@ -32,13 +32,14 @@ export function EventForm() {
     setError(null);
     setFieldErrors({});
     try {
-      await createEvent({
+      const created = await createEvent({
         title: String(form.get("title")),
         description: optional(form.get("description")),
         category: String(form.get("category")) as EventCategory,
         posterUrl: optional(form.get("posterUrl")),
       });
-      router.push("/organizer");
+      // Straight to the manage page, where the organizer adds shows and publishes
+      router.push(`/organizer/events/${created.id}`);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
