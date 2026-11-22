@@ -26,7 +26,6 @@ export function ShowList({ shows }: { shows: Show[] }) {
               {show.prices.map((p) => `${formatCategory(p.category)} ${formatPrice(p.price)}`).join(" · ")}
             </p>
           </div>
-          {/* Seat selection is Week 3: until then this link shows a 404 */}
           <Button render={<Link href={`/shows/${show.id}`} />} nativeButton={false}>
             Select seats
           </Button>

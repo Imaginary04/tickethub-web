@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
 
+// Where to go after logging in: ?next=/shows/5 brings the customer back to the seat map.
+// Only paths on this site are allowed ("//evil.com" or "https://..." would be an open redirect).
+function nextPath(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/account";
+}
+
 export function LoginForm() {
   const { login, status } = useAuth();
   const router = useRouter();
@@ -27,7 +34,7 @@ export function LoginForm() {
   // Already logged in (e.g. opened /login in a new tab): go straight to the account page.
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/account");
+      router.replace(nextPath());
     }
   }, [status, router]);
 
@@ -40,7 +47,7 @@ export function LoginForm() {
     setFieldErrors({});
     try {
       await login(String(form.get("email")), String(form.get("password")));
-      router.replace("/account");
+      router.replace(nextPath());
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

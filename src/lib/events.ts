@@ -1,5 +1,6 @@
 // Public event API, called from Server Components.
 // On the server there's no browser, so the /api proxy isn't involved: we call Spring Boot directly.
+import type { SeatMap } from "@/lib/seats";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -94,6 +95,21 @@ export async function searchEvents(filters: EventFilters): Promise<PageResponse<
   const res = await fetch(`${BACKEND_URL}/api/events?${query}&size=${PAGE_SIZE}`);
   if (!res.ok) {
     throw new Error(`Event search failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// null = show can't be booked (unknown id, event not published, or already started: the API answers 404)
+export async function getSeatMap(showId: string): Promise<SeatMap | null> {
+  if (!/^\d+$/.test(showId)) {
+    return null;
+  }
+  const res = await fetch(`${BACKEND_URL}/api/shows/${showId}/seats`);
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(`Loading seats for show ${showId} failed: ${res.status}`);
   }
   return res.json();
 }
