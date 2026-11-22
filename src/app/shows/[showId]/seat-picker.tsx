@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-
+import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
@@ -22,6 +22,7 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
   const [pickedIds, setPickedIds] = useState<number[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [existingHoldId, setExistingHoldId] = useState<number | null>(null);
   const showId = map.showId;
 
   // Seat id -> seat (with its row label), rebuilt only when a new map arrives
@@ -37,8 +38,11 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
   const lostCount = pickedIds.length - selected.length;
   const total = selected.reduce((sum, seat) => sum + (priceOf(seat.category) ?? 0), 0);
 
-  // Keep the map fresh while the customer is choosing, so seats others take turn grey
+ // Keep the map fresh while the customer is choosing, so seats others take turn grey.
+  // Also loads once straight away: Next keeps this page alive in the background, so coming back
+  // (e.g. after "Change seats" on checkout) would otherwise show the old map for up to 15 s.
   useEffect(() => {
+    fetchSeatMap(showId).then(setMap).catch(() => {});
     const timer = setInterval(() => {
       fetchSeatMap(showId).then(setMap).catch(() => {}); // keep the old map if a refresh fails
     }, REFRESH_EVERY_MS);
@@ -47,6 +51,7 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
 
   function toggle(seatId: number) {
     setMessage(null);
+    setExistingHoldId(null);
     const current = selected.map((seat) => seat.id); // also forgets seats that were taken meanwhile
     if (current.includes(seatId)) {
       setPickedIds(current.filter((id) => id !== seatId));
@@ -73,15 +78,21 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
     setPending(true);
     setMessage(null);
     try {
-      const result = await holdSeats(showId, selected.map((seat) => seat.id));
-      router.push(`/checkout/${result.bookingId}`); // stays "pending" while the next page loads
+            const result = await holdSeats(showId, selected.map((seat) => seat.id));
+      rememberHold(showId, result.bookingId);
+      // Reset before leaving: this page stays alive in the background and must look fresh on Back
+      setPickedIds([]);
+      setPending(false);
+      router.push(`/checkout/${result.bookingId}`);
     } catch (err) {
       setPending(false);
       if (err instanceof ApiError && err.status === 401) {
         router.push(`/login?next=/shows/${showId}`); // session ended
       } else if (err instanceof ApiError) {
         setMessage(err.message); // e.g. 409 "These seats were just taken: A2"
-        if (err.status === 409) {
+        if (err.message.includes("already have seats on hold")) {
+          setExistingHoldId(findHold(showId)); // offer a way back to that checkout
+        } else if (err.status === 409) {
           await refresh(); // the taken seats turn grey and drop out of the selection
         }
       } else {
@@ -125,6 +136,11 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
               {message}
             </p>
           )}
+          {existingHoldId !== null && (
+            <Link href={`/checkout/${existingHoldId}`} className="font-medium underline underline-offset-4">
+              Go to your held seats →
+            </Link>
+          )}
         </div>
         <Button onClick={hold} disabled={selected.length === 0 || pending || status === "loading"}>
           {pending ? "Holding seats..." : status === "anonymous" ? "Log in to continue" : "Hold seats"}
@@ -132,6 +148,23 @@ export function SeatPicker({ initialMap }: { initialMap: SeatMap }) {
       </div>
     </div>
   );
+}
+
+// The last hold made in this tab, per show, so "You already have seats on hold" can link to it.
+// sessionStorage can throw (private mode, blocked storage): then there's just no link.
+function rememberHold(showId: number, bookingId: number) {
+  try {
+    sessionStorage.setItem(`tickethub:hold:${showId}`, String(bookingId));
+  } catch {}
+}
+
+function findHold(showId: number): number | null {
+  try {
+    const value = sessionStorage.getItem(`tickethub:hold:${showId}`);
+    return value ? Number(value) : null;
+  } catch {
+    return null;
+  }
 }
 
 function Legend({ prices }: { prices: SeatMap["prices"] }) {
